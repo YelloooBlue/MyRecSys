@@ -103,3 +103,16 @@ with open(output_data_path + 'dataset.pkl', 'wb') as f:
   pickle.dump(test_set, f, pickle.HIGHEST_PROTOCOL)
   pickle.dump(cate_list, f, pickle.HIGHEST_PROTOCOL)
   pickle.dump((user_count, item_count, cate_count), f, pickle.HIGHEST_PROTOCOL)
+
+"""
+    train_set:
+    [(0, [13179], 17993, 1), (0, [13179], 28883, 0), ...]
+    [(30, [13179, 17993, 28326], 29247, 1), (30, [13179, 17993, 28326], 490, 0)]
+
+    test_set:
+    [(0, [13179, 17993, 28326, 29247], (62275, 5940)), ...]
+    [(30, [13179, 17993, 28326, 29247], (490, 7657)), ...]
+
+    cate_list:
+    [738, 157, 571, 707, 799, ...] #
+"""
