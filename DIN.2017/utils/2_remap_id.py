@@ -76,15 +76,15 @@ reviews_df = reviews_df.sort_values(['reviewerID', 'unixReviewTime'])
 reviews_df = reviews_df.reset_index(drop=True)
 reviews_df = reviews_df[['reviewerID', 'asin', 'unixReviewTime']]
 
-# 按顺序取出所有categories到list
+# iid到cid的映射（前面已经对asin（iid）进行了排序，所以行号就是iid）
 cate_list = [meta_df['categories'][i] for i in range(len(asin_map))]
 cate_list = np.array(cate_list, dtype=np.int32)
 
 with open(raw_data_path + 'remap.pkl', 'wb') as f:
   pickle.dump(reviews_df, f, pickle.HIGHEST_PROTOCOL) # 用户uid, 物品iid, 时间戳
-  pickle.dump(cate_list, f, pickle.HIGHEST_PROTOCOL) # 列表，index为meta的行编号，值为分类cid
+  pickle.dump(cate_list, f, pickle.HIGHEST_PROTOCOL) # 列表，index为 物品iid 对应的类别cid
   pickle.dump((user_count, item_count, cate_count, example_count), # 统计信息
               f, pickle.HIGHEST_PROTOCOL)
   pickle.dump((asin_key, cate_key, revi_key), f, pickle.HIGHEST_PROTOCOL) 
     # 原始的asin, categories, reviewerID列表
-    # 虽然是列表，index可以被视为id，也就是从id到asin等的映射。
+    # 虽然是列表，index可以被视为id，也就是从id到asin原始值的映射
