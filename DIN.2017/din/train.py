@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 from model import DIN  # 假设 DIN 模型定义在 model.py 中
 import tqdm
 import time
+from sklearn.metrics import roc_auc_score
 
 # 检查CUDA和Metal是否可用
 print(f"CUDA is available: {torch.cuda.is_available()}")
@@ -82,7 +83,7 @@ def collate_fn(batch):
             # 填充
             item['hist_items'] = torch.cat([
                 item['hist_items'],
-                torch.full((max_hist_len - hist_len,), -1, dtype=torch.long)
+                torch.full((max_hist_len - hist_len,), 0, dtype=torch.long)
             ])
         # 记录原始长度
         item['hist_len'] = torch.tensor(hist_len, dtype=torch.long)
@@ -223,6 +224,9 @@ if __name__ == "__main__":
         model.eval()
         test_loss = 0.0
 
+        all_preds = []  # 存储所有预测分数
+        all_labels = []  # 存储所有标签（1表示正样本，0表示负样本）
+
         with torch.no_grad():
             for batch in test_loader:
                 user_ids = batch['user_id'].to(device)
@@ -239,11 +243,21 @@ if __name__ == "__main__":
 
                 test_loss += (loss_pos + loss_neg).item() * batch['user_id'].size(0)
 
+                # AUC
+                all_preds.extend(outputs.squeeze().cpu().numpy().tolist())
+                all_labels.extend([1] * outputs.size(0))  # 正样本标签
+                all_preds.extend(outputs_neg.squeeze().cpu().numpy().tolist())
+                all_labels.extend([0] * outputs_neg.size(0))  # 负样本标签
+                
         test_loss /= len(test_loader.dataset)
         test_losses.append(test_loss)
+        
+        # 计算AUC
+        auc_score = roc_auc_score(all_labels, all_preds)
+
 
         epoch_time = time.time() - start_time
-        print(f"Epoch {epoch+1}/{num_epochs} - Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, Time: {epoch_time:.2f}s")
+        print(f"Epoch {epoch+1}/{num_epochs} - Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, AUC: {auc_score:.4f}, Time: {epoch_time:.2f}s")
 
 
 
