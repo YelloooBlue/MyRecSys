@@ -28,6 +28,10 @@ with open(f'{raw_data_path}/meta.pkl', 'wb') as f:
   pickle.dump(meta_df, f, pickle.HIGHEST_PROTOCOL)
 
 '''
-  http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Electronics_5.json.gz
-  http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/meta_Electronics.json.gz
+  mkdir DIN.2017/raw_data
+  cd DIN.2017/raw_data/
+  wget -c http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Electronics_5.json.gz
+  gzip -d reviews_Electronics_5.json.gz
+  wget -c http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/meta_Electronics.json.gz
+  gzip -d meta_Electronics.json.gz
 '''
