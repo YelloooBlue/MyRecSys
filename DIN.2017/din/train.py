@@ -177,7 +177,7 @@ if __name__ == "__main__":
     # 初始化模型
     embedding_dim = 64
     hidden_units = 64
-    model = DIN(num_user=user_count, num_item=item_count, embedding_dim=embedding_dim, hidden_units=hidden_units).to(device)
+    model = DIN(num_user=user_count, num_item=item_count, num_cate=cate_count, cate_list=cate_list, embedding_dim=embedding_dim, hidden_units=hidden_units).to(device)
 
     print(f"Model parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
 

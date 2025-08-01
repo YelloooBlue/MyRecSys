@@ -131,17 +131,22 @@ class DIN(nn.Module):
         输入：用户历史行为、目标物品嵌入
         输出：目标物品的兴趣向量
     """
-    def __init__(self, num_user, num_item, embedding_dim, hidden_units):
+    def __init__(self, num_user, num_item, num_cate, cate_list, embedding_dim = 128, hidden_units = 128):
         super(DIN, self).__init__()
 
         self.num_user = num_user
         self.num_item = num_item
+        self.num_cate = num_cate
+        # self.cate_list = torch.tensor(cate_list, dtype=torch.int64)  # 物品-类别映射（会保留在CPU，后续报错）
+        self.register_buffer('cate_list', torch.tensor(cate_list, dtype=torch.int64))  # 使用register_buffer以便当网络迁移到GPU时一同迁移
+        
         self.embedding_dim = embedding_dim
         self.hidden_units = hidden_units
 
         # 用户和物品的嵌入层
         self.user_embedding = nn.Embedding(num_user, embedding_dim)
-        self.item_embedding = nn.Embedding(num_item, embedding_dim)
+        self.item_embedding = nn.Embedding(num_item, embedding_dim // 2) # 方便后续拼接
+        self.cate_embedding = nn.Embedding(num_cate, embedding_dim // 2)
 
         # 注意力
         self.attention = Attention(hidden_units)
@@ -166,10 +171,22 @@ class DIN(nn.Module):
         返回:
             目标物品的兴趣向量 [B, hidden_units]
         """
+
+        # item_id查表找到类别ID
+        cate_ids = self.cate_list[item_ids]  # [B]
+        history_cate_ids = self.cate_list[history_items]  # [B, T]
+
         # 嵌入查找
         user_emb = self.user_embedding(user_ids)            # [B, embedding_dim]
-        item_emb = self.item_embedding(item_ids)            # [B, embedding_dim]
-        history_emb = self.item_embedding(history_items)    # [B, T, embedding_dim]
+        item_emb = self.item_embedding(item_ids)            # [B, embedding_dim // 2]   # 候选物品的嵌入
+        cate_emb = self.cate_embedding(cate_ids)            # [B, embedding_dim // 2]   # 候选物品的类别嵌入
+
+        history_emb = self.item_embedding(history_items)    # [B, T, embedding_dim // 2]             # 历史物品的嵌入
+        history_cate_emb = self.cate_embedding(history_cate_ids)  # [B, T, embedding_dim // 2]       # 历史物品的类别嵌入
+
+        # 拼接物品嵌入和类别嵌入
+        item_emb = torch.cat([item_emb, cate_emb], dim=-1)  # [B, embedding_dim]
+        history_emb = torch.cat([history_emb, history_cate_emb], dim=-1)  # [B, T, embedding_dim]
 
         # 注意力机制
         attention_output = self.attention(item_emb, history_emb, seq_len)
