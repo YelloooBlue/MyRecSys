@@ -7,3 +7,5 @@ DIN.2017/dataset.pkl
 
 # 权重
 *.pth
+
+__pycache__

@@ -2,14 +2,17 @@
     DIN (Deep Interest Network) 模型训练
 """
 
-import pickle
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
-from model import DIN  # 假设 DIN 模型定义在 model.py 中
+from torch.utils.data import DataLoader
 import tqdm
 import time
+import pickle
 from sklearn.metrics import roc_auc_score
+from torch.utils.tensorboard import SummaryWriter
+
+from model import DIN
+from dataset import DINDataset
 
 # 检查CUDA和Metal是否可用
 print(f"CUDA is available: {torch.cuda.is_available()}")
@@ -25,6 +28,9 @@ else:
     device = torch.device("cpu")
 print(f"# Using device: {device}")
 
+# TensorBoard
+writer = SummaryWriter(log_dir='DIN.2017/output/tb_logs')
+
 # 随机数种子，方便复现代码
 torch.manual_seed(1234)
 
@@ -33,94 +39,9 @@ train_batch_size = 32
 test_batch_size = 512
 num_epochs = 10
 
-# ======================================= 自定义Dataloader =======================================
-
-"""
-    由于用户历史序列是不定长的，因此传统的DataLoader无法直接使用。
-    需要自定义一个Dataloader来处理变长序列。
-"""
-
-# 自定义数据集类
-class DINDataset(Dataset):
-    def __init__(self, data, is_train=True):
-        self.data = data
-        self.is_train = is_train
-        
-    def __len__(self):
-        return len(self.data)
-    
-    def __getitem__(self, idx):
-        sample = self.data[idx]
-        
-        if self.is_train:
-            # 训练集格式: (user_id, [历史物品列表], 目标物品, 标签)
-            user_id, hist_items, target_item, label = sample
-            return {
-                'user_id': torch.tensor(user_id, dtype=torch.long),
-                'hist_items': torch.tensor(hist_items, dtype=torch.long),
-                'target_item': torch.tensor(target_item, dtype=torch.long),
-                'label': torch.tensor(label, dtype=torch.float)
-            }
-        else:
-            # 测试集格式: (user_id, [历史物品列表], (正样本, 负样本))
-            user_id, hist_items, (pos_item, neg_item) = sample
-            return {
-                'user_id': torch.tensor(user_id, dtype=torch.long),
-                'hist_items': torch.tensor(hist_items, dtype=torch.long),
-                'pos_item': torch.tensor(pos_item, dtype=torch.long),
-                'neg_item': torch.tensor(neg_item, dtype=torch.long)
-            }
-
-# 用于处理变长历史序列的collate函数
-def collate_fn(batch):
-    # 找到最大的历史序列长度
-    max_hist_len = max(len(item['hist_items']) for item in batch)
-
-    # 填充历史序列到相同长度
-    for item in batch:
-        hist_len = len(item['hist_items'])
-        if hist_len < max_hist_len:
-            # 填充
-            item['hist_items'] = torch.cat([
-                item['hist_items'],
-                torch.full((max_hist_len - hist_len,), 0, dtype=torch.long)
-            ])
-        # 记录原始长度
-        item['hist_len'] = torch.tensor(hist_len, dtype=torch.long)
-
-    # 将batch中的各个字段组合起来（兼容训练和测试）
-    return {
-        'user_id': torch.stack([item['user_id'] for item in batch]),
-        'hist_items': torch.stack([item['hist_items'] for item in batch]),
-        'hist_len': torch.stack([item['hist_len'] for item in batch]),
-        'target_item': torch.stack([item['target_item'] for item in batch]) if 'target_item' in batch[0] else None, # 仅Train使用
-        'label': torch.stack([item['label'] for item in batch]) if 'label' in batch[0] else None,                   # 仅Train使用
-        'pos_item': torch.stack([item['pos_item'] for item in batch]) if 'pos_item' in batch[0] else None,          # 仅测试集使用
-        'neg_item': torch.stack([item['neg_item'] for item in batch]) if 'neg_item' in batch[0] else None           # 仅测试集使用
-    }
-
-
-
-
-def train_din(model, dataloader, optimizer, criterion, device):
-    model.train()
-    total_loss = 0
-    for batch in dataloader:
-        
-        user_ids = batch['user_id'].to(device)
-        history_items = batch['hist_items'].to(device)
-        seq_len = batch['hist_len'].to(device)
-        item_ids = batch['target_item'].to(device)
-        labels = batch['label'].to(device)
-
-        optimizer.zero_grad()
-        outputs = model(user_ids, item_ids, history_items, seq_len)
-        loss = criterion(outputs.squeeze(), labels)
-        loss.backward()
-        optimizer.step()
-
-        total_loss += loss.item()
-
+# 模型参数
+embedding_dim = 64
+hidden_units = 64
 
 if __name__ == "__main__":
 
@@ -145,9 +66,6 @@ if __name__ == "__main__":
         [738, 157, 571, 707, 799, ...] #
     """
 
-
-    
-
     # 创建训练集和测试集
     train_dataset = DINDataset(train_set, is_train=True)
     test_dataset = DINDataset(test_set, is_train=False)
@@ -171,14 +89,11 @@ if __name__ == "__main__":
     # =================================== 真实数据集和数据加载器 =================================
 
     # 创建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True, collate_fn=collate_fn)
-    test_loader = DataLoader(test_dataset, batch_size=test_batch_size, shuffle=False, collate_fn=collate_fn)
+    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True, collate_fn=train_dataset.collate_fn)
+    test_loader = DataLoader(test_dataset, batch_size=test_batch_size, shuffle=False, collate_fn=test_dataset.collate_fn)
 
     # 初始化模型
-    embedding_dim = 64
-    hidden_units = 64
     model = DIN(num_user=user_count, num_item=item_count, num_cate=cate_count, cate_list=cate_list, embedding_dim=embedding_dim, hidden_units=hidden_units).to(device)
-
     print(f"Model parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
 
     # 定义损失函数和优化器
@@ -191,6 +106,9 @@ if __name__ == "__main__":
     train_losses = []
     test_losses = []
     best_auc = 0.0
+
+    global_step = 0
+    print("Start training")
     for epoch in range(num_epochs):
         
         # 训练阶段
@@ -213,10 +131,15 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
 
+            # 记录训练损失
+            writer.add_scalar('Loss/train', loss.item(), global_step)
+
             train_loss += loss.item() * batch['user_id'].size(0)  # 累加损失
 
             progress_bar.set_postfix({'batch_loss': f"{loss.item():.4f}",
                                         'epoch_loss': f"{train_loss / len(train_loader.dataset):.4f}"})
+            
+            global_step += 1
             
         train_loss /= len(train_loader.dataset)
         train_losses.append(train_loss)
@@ -236,9 +159,11 @@ if __name__ == "__main__":
                 pos_items = batch['pos_item'].to(device)
                 neg_items = batch['neg_item'].to(device)
 
+                # 对正样本进行预测
                 outputs = model(user_ids, pos_items, history_items, seq_len)
                 loss_pos = criterion(outputs.squeeze(), torch.ones_like(outputs.squeeze()))
                 
+                # 对负样本进行预测
                 outputs_neg = model(user_ids, neg_items, history_items, seq_len)
                 loss_neg = criterion(outputs_neg.squeeze(), torch.zeros_like(outputs_neg.squeeze()))
 
@@ -257,15 +182,13 @@ if __name__ == "__main__":
         auc_score = roc_auc_score(all_labels, all_preds)
         best_auc = max(best_auc, auc_score)
 
-
         epoch_time = time.time() - start_time
         print(f"Epoch {epoch+1}/{num_epochs} - Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, AUC: {auc_score:.4f}, Time: {epoch_time:.2f}s")
 
-
+        # 保存模型
+        torch.save(model.state_dict(), f'DIN.2017/output/checkpoint/din_model_epoch{epoch+1}.pth')
 
     print(f"Best AUC: {best_auc:.4f}")
 
-
-
-    # 保存模型
-    torch.save(model.state_dict(), 'din_model.pth')
+    # 关闭TensorBoard
+    writer.close()

@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "pandas>=2.3.1",
     "scikit-learn>=1.7.1",
+    "tensorboard>=2.20.0",
     "torch>=2.7.1",
     "torchvision>=0.22.1",
     "tqdm>=4.67.1",
