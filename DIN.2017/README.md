@@ -45,20 +45,20 @@
 ## 构建数据集（交互序列）
 由于DIN模型需要用户的历史交互序列作为输入，因此需要基于时间戳对用户的交互行为进行排序，并构建训练、验证和测试集。
 
-使用 `DIN.2017/din/build_dataset.py` 脚本构建交互序列数据集。
+使用脚本构建交互序列数据集。
 
 ```bash
-  cd DIN.2017/din/
-  python build_dataset.py
+  cd DIN.2017/utils/
+  python 3_build_dataset.py
 ```
 
 得到 `dataset.pkl`，包含训练和测试集的交互序列数据。
 
 ## 训练
-使用 `DIN.2017/din/train.py` 脚本训练DIN模型。
+使用 `DIN.2017/train.py` 脚本训练DIN模型。
 
 ```bash
-  cd DIN.2017/din/
+  cd DIN.2017/
   python train.py
 ```
 
@@ -76,7 +76,7 @@
 需要修改 `model_path = 'din_model.pth'` 为训练保存的模型路径。
 
 ```bash
-  cd DIN.2017/din/
+  cd DIN.2017/
   python test.py
 ```
 
