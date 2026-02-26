@@ -1,5 +1,7 @@
 # DIN模型复现（PyTorch）
+DIN（Deep Interest Network）是一种基于深度学习的点击率预测模型，旨在捕捉用户兴趣的动态变化。本文档介绍了DIN模型的复现过程，包括数据集准备、数据预处理、构建交互序列数据集以及模型训练等步骤。
 
+TAGS: 排序、点击率预测、深度学习、兴趣建模
 
 ## 数据集准备
 根据论文中的Table2，作者使用了[Amazon Reviews 2014](https://jmcauley.ucsd.edu/data/amazon)的电子产品Electronics的 `5-core` 数据集。
@@ -81,5 +83,5 @@
 ```
 
 ### Reference
-- [论文链接](https://arxiv.org/abs/1706.06978)
-- [作者代码（TensorFlow）](https://github.com/zhougr1993/DeepInterestNetwork)
+- 论文链接：[Deep Interest Network for Click-Through Rate Prediction](https://arxiv.org/abs/1706.06978)
+- 原作者代码：[DeepInterestNetwork（TensorFlow）](https://github.com/zhougr1993/DeepInterestNetwork)
