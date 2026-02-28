@@ -85,3 +85,7 @@ TAGS: 排序、点击率预测、深度学习、兴趣建模
 ### Reference
 - 论文链接：[Deep Interest Network for Click-Through Rate Prediction](https://arxiv.org/abs/1706.06978)
 - 原作者代码：[DeepInterestNetwork（TensorFlow）](https://github.com/zhougr1993/DeepInterestNetwork)
+- 相关博客：
+  - [推荐系统（十一）阿里深度兴趣网络（一）：DIN模型（Deep Interest Network）-CSDN博客](https://blog.csdn.net/u012328159/article/details/123043033)
+  - [【总结】推荐系统——精排篇【3】DIN/DIEN/BST/DSIN/MIMN/SIM/CAN](https://www.zhihu.com/tardis/zm/art/433135805?source_id=1003)
+
