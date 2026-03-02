@@ -1,13 +1,15 @@
 import random
 import pickle
+from pathlib import Path
 
 random.seed(1234)
 
-raw_data_path = 'DIN.2017/raw_data/'
-output_data_path = 'DIN.2017/'
+ROOT_DIR = Path(__file__).resolve().parents[1]
+RAW_DATA_DIR = ROOT_DIR / 'raw_data'
+OUTPUT_DATA_DIR = ROOT_DIR
 
 # 从remap好的数据集中读取数据
-with open(raw_data_path + 'remap.pkl', 'rb') as f:
+with open(RAW_DATA_DIR / 'remap.pkl', 'rb') as f:
   reviews_df = pickle.load(f)
   cate_list = pickle.load(f)
   user_count, item_count, cate_count, example_count = pickle.load(f)
@@ -98,7 +100,7 @@ assert len(test_set) == user_count
 # assert(len(test_set) + len(train_set) // 2 == reviews_df.shape[0])
 
 # 打包数据集
-with open(output_data_path + 'dataset.pkl', 'wb') as f:
+with open(OUTPUT_DATA_DIR / 'dataset.pkl', 'wb') as f:
   pickle.dump(train_set, f, pickle.HIGHEST_PROTOCOL)
   pickle.dump(test_set, f, pickle.HIGHEST_PROTOCOL)
   pickle.dump(cate_list, f, pickle.HIGHEST_PROTOCOL)
@@ -116,3 +118,5 @@ with open(output_data_path + 'dataset.pkl', 'wb') as f:
     cate_list:
     [738, 157, 571, 707, 799, ...] #
 """
+
+print(f'Wrote: {OUTPUT_DATA_DIR / "dataset.pkl"}')

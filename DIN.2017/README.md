@@ -14,14 +14,29 @@ TAGS: 排序、点击率预测、深度学习、兴趣建模
 - 样本（交互）数：1,689,188
 
 
-使用以下命令或手动下载数据集「Amazon 」到`DIN.2017/raw_data/`目录下
+建议始终在**仓库根目录**执行以下命令，不要先 `cd DIN.2017/utils` 再运行脚本。
+
+如需拉取项目并进入目录：
 ```bash
-  mkdir DIN.2017/raw_data
-  cd DIN.2017/raw_data/
-  wget -c http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Electronics_5.json.gz
-  gzip -d reviews_Electronics_5.json.gz
-  wget -c http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/meta_Electronics.json.gz
-  gzip -d meta_Electronics.json.gz
+git clone <your_repo_url> MyRecSys
+cd MyRecSys
+```
+
+如果本地已有仓库，先更新后进入目录：
+```bash
+cd MyRecSys
+git pull
+```
+
+下载并解压数据到 `DIN.2017/raw_data/`（可重复执行）：
+```bash
+mkdir -p DIN.2017/raw_data
+cd DIN.2017/raw_data
+wget -c http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Electronics_5.json.gz
+wget -c http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/meta_Electronics.json.gz
+gzip -dk reviews_Electronics_5.json.gz
+gzip -dk meta_Electronics.json.gz
+cd ../..
 ```
 ## 数据预处理
 使用 `DIN.2017/utils/1_convert_pd.py` 脚本将原始的Meta（商品信息）和Review（用户交互）数据转换为pkl格式。得到：
@@ -30,15 +45,13 @@ TAGS: 排序、点击率预测、深度学习、兴趣建模
 - meta.pkl：包含商品的元数据
 
 ```bash
-  cd DIN.2017/utils/
-  python 1_convert_pd.py
+python DIN.2017/utils/1_convert_pd.py
 ```
 
 随后对物品和用户进行重新编号，生成 `remap.pkl`。
 
 ```bash
-  cd DIN.2017/utils/
-  python 2_remap_id.py
+python DIN.2017/utils/2_remap_id.py
 ```
 
 此处可根据输出信息核对数据数量。
@@ -50,8 +63,7 @@ TAGS: 排序、点击率预测、深度学习、兴趣建模
 使用脚本构建交互序列数据集。
 
 ```bash
-  cd DIN.2017/utils/
-  python 3_build_dataset.py
+python DIN.2017/utils/3_build_dataset.py
 ```
 
 得到 `dataset.pkl`，包含训练和测试集的交互序列数据。
@@ -60,8 +72,7 @@ TAGS: 排序、点击率预测、深度学习、兴趣建模
 使用 `DIN.2017/train.py` 脚本训练DIN模型。
 
 ```bash
-  cd DIN.2017/
-  python train.py
+python DIN.2017/train.py
 ```
 
 其中每个step会写入Metrics到TensorBoard，训练日志保存在 `DIN.2017/output/tb_logs` 目录下。可以使用以下命令启动TensorBoard进行可视化
@@ -78,8 +89,7 @@ TAGS: 排序、点击率预测、深度学习、兴趣建模
 需要修改 `model_path = 'din_model.pth'` 为训练保存的模型路径。
 
 ```bash
-  cd DIN.2017/
-  python test.py
+python DIN.2017/test.py
 ```
 
 ### Reference
@@ -87,9 +97,8 @@ TAGS: 排序、点击率预测、深度学习、兴趣建模
   - [Deep Interest Network for Click-Through Rate Prediction](https://arxiv.org/abs/1706.06978)
   - [1706.06978v1.pdf](https://arxiv.org/pdf/1706.06978v1)
 
-- 原作者代码：[DeepInterestNetwork（TensorFlow）](https://github.com/zhougr1993/DeepInterestNetwork)
+- 原作者代码：[DeepInterestNetwork(TensorFlow)](https://github.com/zhougr1993/DeepInterestNetwork)
 
 - 相关博客：
   - [推荐系统（十一）阿里深度兴趣网络（一）：DIN模型（Deep Interest Network）-CSDN博客](https://blog.csdn.net/u012328159/article/details/123043033)
   - [【总结】推荐系统——精排篇【3】DIN/DIEN/BST/DSIN/MIMN/SIM/CAN](https://www.zhihu.com/tardis/zm/art/433135805?source_id=1003)
-

@@ -1,16 +1,18 @@
 import random
 import pickle
 import numpy as np
+from pathlib import Path
 
 random.seed(1234)
 
-raw_data_path = 'DIN.2017/raw_data/'
+ROOT_DIR = Path(__file__).resolve().parents[1]
+RAW_DATA_DIR = ROOT_DIR / 'raw_data'
 
 # 打开上一步处理好的DataFrame
-with open(raw_data_path + 'reviews.pkl', 'rb') as f:
+with open(RAW_DATA_DIR / 'reviews.pkl', 'rb') as f:
   reviews_df = pickle.load(f)
   reviews_df = reviews_df[['reviewerID', 'asin', 'unixReviewTime']]
-with open(raw_data_path + 'meta.pkl', 'rb') as f:
+with open(RAW_DATA_DIR / 'meta.pkl', 'rb') as f:
   meta_df = pickle.load(f)
   meta_df = meta_df[['asin', 'categories']]
   meta_df['categories'] = meta_df['categories'].map(lambda x: x[-1][-1]) # 只保留最后一级分类
@@ -80,7 +82,7 @@ reviews_df = reviews_df[['reviewerID', 'asin', 'unixReviewTime']]
 cate_list = [meta_df['categories'][i] for i in range(len(asin_map))]
 cate_list = np.array(cate_list, dtype=np.int32)
 
-with open(raw_data_path + 'remap.pkl', 'wb') as f:
+with open(RAW_DATA_DIR / 'remap.pkl', 'wb') as f:
   pickle.dump(reviews_df, f, pickle.HIGHEST_PROTOCOL) # 用户uid, 物品iid, 时间戳
   pickle.dump(cate_list, f, pickle.HIGHEST_PROTOCOL) # 列表，index为 物品iid 对应的类别cid
   pickle.dump((user_count, item_count, cate_count, example_count), # 统计信息
@@ -88,3 +90,5 @@ with open(raw_data_path + 'remap.pkl', 'wb') as f:
   pickle.dump((asin_key, cate_key, revi_key), f, pickle.HIGHEST_PROTOCOL) 
     # 原始的asin, categories, reviewerID列表
     # 虽然是列表，index可以被视为id，也就是从id到asin原始值的映射
+
+print(f'Wrote: {RAW_DATA_DIR / "remap.pkl"}')

@@ -1,37 +1,56 @@
+import gzip
+import json
 import pickle
+import ast
+from pathlib import Path
+
 import pandas as pd
 
-# 将行JSON文件转换为DataFrame
-def to_df(file_path):
-  with open(file_path, 'r') as fin:
-    df = {}
-    i = 0
-    for line in fin:
-      df[i] = eval(line) # eval 等同于 json.loads(line)
-      i += 1
-    df = pd.DataFrame.from_dict(df, orient='index')
-    return df
-  
 
-raw_data_path = 'DIN.2017/raw_data/' # 修改官方代码方便自定义数据集位置
+def to_df(file_path: Path) -> pd.DataFrame:
+  """Read line-delimited json objects to DataFrame (supports .json/.json.gz)."""
+  open_fn = gzip.open if file_path.suffix == '.gz' else open
+  with open_fn(file_path, 'rt', encoding='utf-8') as fin:
+    records = []
+    for line in fin:
+      line = line.strip()
+      if not line:
+        continue
+      try:
+        records.append(json.loads(line))
+      except json.JSONDecodeError:
+        # Some Amazon files use single-quoted python-literal dicts.
+        records.append(ast.literal_eval(line))
+  return pd.DataFrame(records)
+
+
+def resolve_input(raw_data_path: Path, stem: str) -> Path:
+  json_path = raw_data_path / f'{stem}.json'
+  gz_path = raw_data_path / f'{stem}.json.gz'
+  if json_path.exists():
+    return json_path
+  if gz_path.exists():
+    return gz_path
+  raise FileNotFoundError(f'Missing {stem}.json or {stem}.json.gz in {raw_data_path}')
+
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+RAW_DATA_DIR = ROOT_DIR / 'raw_data'
+
+reviews_path = resolve_input(RAW_DATA_DIR, 'reviews_Electronics_5')
+meta_path = resolve_input(RAW_DATA_DIR, 'meta_Electronics')
 
 # 处理Reviews数据
-reviews_df = to_df(f'{raw_data_path}/reviews_Electronics_5.json')
-with open(f'{raw_data_path}/reviews.pkl', 'wb') as f:
+reviews_df = to_df(reviews_path)
+with open(RAW_DATA_DIR / 'reviews.pkl', 'wb') as f:
   pickle.dump(reviews_df, f, pickle.HIGHEST_PROTOCOL)
 
 # 处理Meta数据
-meta_df = to_df(f'{raw_data_path}/meta_Electronics.json')
-meta_df = meta_df[meta_df['asin'].isin(reviews_df['asin'].unique())] # 只保留reviews中存在的asin
+meta_df = to_df(meta_path)
+meta_df = meta_df[meta_df['asin'].isin(reviews_df['asin'].unique())]
 meta_df = meta_df.reset_index(drop=True)
-with open(f'{raw_data_path}/meta.pkl', 'wb') as f:
+with open(RAW_DATA_DIR / 'meta.pkl', 'wb') as f:
   pickle.dump(meta_df, f, pickle.HIGHEST_PROTOCOL)
 
-'''
-  mkdir DIN.2017/raw_data
-  cd DIN.2017/raw_data/
-  wget -c http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Electronics_5.json.gz
-  gzip -d reviews_Electronics_5.json.gz
-  wget -c http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/meta_Electronics.json.gz
-  gzip -d meta_Electronics.json.gz
-'''
+print(f'Wrote: {RAW_DATA_DIR / "reviews.pkl"}')
+print(f'Wrote: {RAW_DATA_DIR / "meta.pkl"}')
