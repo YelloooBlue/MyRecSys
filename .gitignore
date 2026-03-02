@@ -8,4 +8,7 @@ DIN.2017/dataset.pkl
 # 权重
 *.pth
 
+# 输出文件（每个模型下的output目录）
+*/output
+
 __pycache__

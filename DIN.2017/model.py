@@ -51,7 +51,8 @@ class Attention(nn.Module):
 
         # Mask 无效历史
         mask = torch.arange(T, device=seq_len.device)[None, :] < seq_len[:, None]  # [B, T]
-        outputs = outputs.masked_fill(~mask, -1e9)  # 将无效历史的注意力值设为负无穷
+        neg_inf = torch.finfo(outputs.dtype).min           # 自适应取得负无穷值
+        outputs = outputs.masked_fill(~mask, neg_inf)      # 将无效历史的注意力值设为负无穷
 
         # Scale 注意力缩放
         outputs = outputs / np.sqrt(self.hidden_units)  # 注意力缩放 [B, T]
@@ -112,7 +113,8 @@ class Attention_Multi(nn.Module):
 
         # Mask 无效历史
         mask = torch.arange(T, device=seq_len.device)[None, None, :] < seq_len[:, None, None] # [B, N, T]
-        outputs = outputs.masked_fill(~mask, -1e9)
+        neg_inf = torch.finfo(outputs.dtype).min        # 自适应取得负无穷值
+        outputs = outputs.masked_fill(~mask, neg_inf)   # 将无效历史的注意力值设为负无穷
 
         # Scale 注意力缩放
         outputs = outputs / np.sqrt(self.hidden_units)  # 注意力缩放 [B, N, T]
@@ -196,9 +198,7 @@ class DIN(nn.Module):
 
         # MLP处理
         output = self.mlp(output)  # [B, 1]
-        ctr = torch.sigmoid(output)  # Sigmoid激活，输出概率
-
-        return ctr
+        return output  # 返回logits，交给BCEWithLogitsLoss处理
 
 if __name__ == "__main__":
 

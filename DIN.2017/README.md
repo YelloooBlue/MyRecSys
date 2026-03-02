@@ -92,6 +92,10 @@ python DIN.2017/train.py
 python DIN.2017/test.py
 ```
 
+## 预期结果（复现效果）
+- 官方论文实现中 DIN 和 DIN with Dice 在 Amazon Electronics 5-core 数据集上的 AUC 均为 0.88 左右。
+- 本次复现10个epoch后，hidden_dim = embedding_dim = 64 时，AUC约为0.83，曲线观察到过拟合特征，还有进一步的调参空间。
+
 ### Reference
 - 论文链接：
   - [Deep Interest Network for Click-Through Rate Prediction](https://arxiv.org/abs/1706.06978)
