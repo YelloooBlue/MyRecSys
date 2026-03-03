@@ -9,11 +9,31 @@ from torch.utils.data import DataLoader, Dataset
 import tqdm
 import time
 import pickle
+import argparse
 from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score, precision_recall_curve
 import numpy as np
+from pathlib import Path
 
 from model import DIN
 from dataset import DINDataset
+
+ROOT_DIR = Path(__file__).resolve().parent
+DATASET_PATH = ROOT_DIR / 'dataset.pkl'
+CKPT_DIR = ROOT_DIR / 'output' / 'checkpoint'
+
+
+def resolve_model_path(model_path_arg: str | None) -> Path:
+    if model_path_arg:
+        return Path(model_path_arg).expanduser().resolve()
+
+    best_ckpts = sorted(
+        CKPT_DIR.glob('run_*/din_model_best.pth'),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True
+    )
+    if not best_ckpts:
+        raise FileNotFoundError(f"未找到 best checkpoint: {CKPT_DIR}/run_*/din_model_best.pth")
+    return best_ckpts[0]
 
 # 检查CUDA和Metal是否可用
 print(f"CUDA is available: {torch.cuda.is_available()}")
@@ -42,10 +62,17 @@ embedding_dim = 64
 hidden_units = 64
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="DIN inference/evaluation")
+    parser.add_argument(
+        "--model-path",
+        type=str,
+        default=None,
+        help="模型权重路径；不传则自动选择 output/checkpoint 下最新的 din_model_best.pth",
+    )
+    args = parser.parse_args()
 
     # 加载数据集
-    dataset_path = 'DIN.2017/dataset.pkl'
-    with open(dataset_path, 'rb') as f:
+    with open(DATASET_PATH, 'rb') as f:
         train_set = pickle.load(f)
         test_set = pickle.load(f)
         cate_list = pickle.load(f)
@@ -69,10 +96,17 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset, batch_size=test_batch_size, shuffle=False, collate_fn=test_dataset.collate_fn)
 
     # 加载模型权重
-    model = DIN(user_count, item_count, embedding_dim, hidden_units).to(device)
+    model = DIN(
+        num_user=user_count,
+        num_item=item_count,
+        num_cate=cate_count,
+        cate_list=cate_list,
+        embedding_dim=embedding_dim,
+        hidden_units=hidden_units,
+    ).to(device)
     
     # 检查模型文件是否存在
-    model_path = 'din_model.pth'
+    model_path = resolve_model_path(args.model_path)
     try:
         model.load_state_dict(torch.load(model_path, map_location=device))
         print(f"成功加载模型权重: {model_path}")

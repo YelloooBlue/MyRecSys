@@ -11,6 +11,9 @@ class Attention(nn.Module):
     """
         注意力机制实现——单物品（训练阶段）
         从历史行为中筛选与目标物品相关的信息
+        这是一个 Target Aware Attention，输入是目标物品的嵌入和历史行为的嵌入，输出是加权后的历史向量
+        并且采用的是 DIN 论文中提出的特征交互方式（query、keys、query-keys、query*keys），
+        通过 MLP 来学习复杂的非线性交互关系，而不是简单的点积或加权求和。
     """
     def __init__(self, hidden_units):
         super(Attention, self).__init__()
@@ -24,6 +27,11 @@ class Attention(nn.Module):
             nn.Sigmoid(),
             nn.Linear(40, 1)
         )
+
+        # 这里没有加Norm主要有有两方面考虑：
+        # - BatchNorm不适合变长序列的注意力权重计算，可能会引入不稳定性。
+        # - LayerNorm虽然适合变长序列，但这里的MLP层数较少，且输入维度不大。
+        # 此外这里的 MLP 属于“打分器“，引入Norm可能会干扰其学习能力。
         
     def forward(self, query, keys, seq_len):
         """

@@ -46,7 +46,7 @@ torch.manual_seed(1234)
 # 超参数设置
 train_batch_size = 256
 test_batch_size = 512
-num_epochs = 10
+num_epochs = 4
 num_workers = 4         # Dataloader的工作线程数，视系统性能调整
 grad_log_interval = 50  # 每多少个step记录一次梯度范数
 
