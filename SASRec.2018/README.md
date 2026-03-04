@@ -1,6 +1,8 @@
 # SASRec模型复现（PyTorch）
 SASRec（Self-Attentive Sequential Recommendation）是一种基于自注意力机制的序列推荐模型，旨在捕捉用户历史交互序列中的长期依赖关系。本文档介绍了SASRec模型的复现过程，包括数据集准备、数据预处理、构建交互序列数据集以及模型训练等步骤。
 
+![model](image.png)
+
 TAGS: 召回、序列推荐、Transformer、自注意力机制
 
 ## 数据集准备
