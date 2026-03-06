@@ -30,6 +30,15 @@ class PReLU(nn.Module):
     def forward(self, x):
         return torch.where(x > 0, x, self.weight * x)
 
+# ELU（Exponential Linear Unit）是ReLU的一个变体，定义为 f(x) = x if x > 0 else alpha * (exp(x) - 1)，其中alpha是一个常数（通常为1）。ELU在处理负输入时引入了一个指数函数，可以使输出更平滑，并且在负输入时具有非零梯度。
+class ELU(nn.Module):
+    def __init__(self, alpha=1.0):
+        super(ELU, self).__init__()
+        self.alpha = alpha
+
+    def forward(self, x):
+        return torch.where(x > 0, x, self.alpha * (torch.exp(x) - 1))
+
 # =============================================== Sigmoid 和 Tanh ===============================================
     
 # Sigmoid函数将输入映射到(0, 1)之间，定义为 f(x) = 1 / (1 + exp(-x))。它常用于二分类问题的输出层，以表示某个样本属于正类的概率。
