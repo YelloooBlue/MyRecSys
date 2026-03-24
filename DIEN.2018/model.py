@@ -82,7 +82,7 @@ class AuxiliaryNet(nn.Module):
 
     def __init__(self, input_dim: int):
         super().__init__()
-        self.bn = nn.BatchNorm1d(input_dim)
+        self.norm = nn.LayerNorm(input_dim)
         self.fc1 = nn.Linear(input_dim, 100)
         self.fc2 = nn.Linear(100, 50)
         self.fc3 = nn.Linear(50, 2)
@@ -96,7 +96,7 @@ class AuxiliaryNet(nn.Module):
         """
         origin_shape = x.shape
         x = x.reshape(-1, origin_shape[-1])
-        x = self.bn(x)
+        x = self.norm(x)
         x = torch.sigmoid(self.fc1(x))
         x = torch.sigmoid(self.fc2(x))
         x = self.fc3(x)

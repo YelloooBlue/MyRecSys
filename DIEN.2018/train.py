@@ -186,7 +186,9 @@ if __name__ == "__main__":
         writer.add_scalar("train/aux_loss_epoch", train_aux_loss, epoch + 1)
 
         model.eval()
-        eval_loss = 0.0
+        eval_total_loss = 0.0
+        eval_ctr_loss = 0.0
+        eval_aux_loss = 0.0
         all_preds = []
         all_labels = []
 
@@ -221,19 +223,28 @@ if __name__ == "__main__":
                 neg_pred = torch.nan_to_num(neg_pred, nan=0.5, posinf=1.0, neginf=0.0).clamp(1e-6, 1.0 - 1e-6)
                 pos_bce = torch.nn.functional.binary_cross_entropy(pos_pred, torch.ones_like(pos_pred))
                 neg_bce = torch.nn.functional.binary_cross_entropy(neg_pred, torch.zeros_like(neg_pred))
-                loss = pos_bce + neg_bce + 0.5 * (pos_aux + neg_aux)
+                ctr_loss = pos_bce + neg_bce
+                aux_loss = 0.5 * (pos_aux + neg_aux)
+                total_loss = ctr_loss + aux_loss
 
-                eval_loss += loss.item() * batch["user_id"].size(0)
+                bs = batch["user_id"].size(0)
+                eval_total_loss += total_loss.item() * bs
+                eval_ctr_loss += ctr_loss.item() * bs
+                eval_aux_loss += aux_loss.item() * bs
 
                 all_preds.extend(pos_pred.squeeze(-1).cpu().numpy().tolist())
                 all_labels.extend([1] * pos_pred.size(0))
                 all_preds.extend(neg_pred.squeeze(-1).cpu().numpy().tolist())
                 all_labels.extend([0] * neg_pred.size(0))
 
-        eval_loss /= len(test_loader.dataset)
+        eval_total_loss /= len(test_loader.dataset)
+        eval_ctr_loss /= len(test_loader.dataset)
+        eval_aux_loss /= len(test_loader.dataset)
         auc_score = roc_auc_score(all_labels, all_preds)
 
-        writer.add_scalar("eval/loss_epoch", eval_loss, epoch + 1)
+        writer.add_scalar("eval/loss_epoch", eval_total_loss, epoch + 1)
+        writer.add_scalar("eval/ctr_loss_epoch", eval_ctr_loss, epoch + 1)
+        writer.add_scalar("eval/aux_loss_epoch", eval_aux_loss, epoch + 1)
         writer.add_scalar("eval/auc_epoch", auc_score, epoch + 1)
 
         if auc_score > best_auc:
@@ -244,7 +255,8 @@ if __name__ == "__main__":
         epoch_time = time.time() - start_time
         print(
             f"Epoch {epoch + 1}/{num_epochs} - "
-            f"Train Loss: {train_loss:.4f}, Eval Loss: {eval_loss:.4f}, "
+            f"Train Loss: {train_loss:.4f}, Eval Total: {eval_total_loss:.4f}, "
+            f"Eval CTR: {eval_ctr_loss:.4f}, Eval AUX: {eval_aux_loss:.4f}, "
             f"AUC: {auc_score:.4f}, Time: {epoch_time:.2f}s"
         )
 
