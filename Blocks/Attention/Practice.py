@@ -17,14 +17,18 @@ class DotProductAttention(nn.Module):
 
 # 缩放点积注意力
 class ScaledDotProductAttention(nn.Module):
-    def __init__(self):
+    def __init__(self, dropout_rate = 0.0):
         super().__init__()
+        self.dropout = nn.Dropout(dropout_rate)
 
-    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor):
+    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, mask: torch.Tensor = None):
         B, T, D = q.size()
         score = torch.matmul(q, k.transpose(-2, -1))    # [B, T, D] @ [B, D, T] = [B, T, T]
         score = score / (D ** 0.5)                      # 缩放，也可以写成 score = score * (D ** -0.5)
+        if mask is not None:
+            score = score.masked_fill(mask == 0, float("-inf"))
         attn = torch.softmax(score, dim=-1)             # [B, T, T]
+        attn = self.dropout(attn)
         out = torch.matmul(attn, v)                     # [B, T, T] @ [B, T, D] = [B, T, D]
         return out, attn
 
